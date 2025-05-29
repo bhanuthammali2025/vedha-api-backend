@@ -1,37 +1,32 @@
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from 'openai';
 
-const configuration = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-const openai = new OpenAIApi(configuration);
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ message: "Only POST allowed" });
-  }
-
-  const { question, context } = req.body;
-  if (!question || !context) {
-    return res.status(400).json({ message: "Missing 'question' or 'context' in request body" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4o-mini",
+    const { content, question } = req.body;
+
+    if (!content || !question) {
+      return res.status(400).json({ error: 'Missing content or question' });
+    }
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
       messages: [
-        {
-          role: "system",
-          content: "You answer questions based on the provided context."
-        },
-        { role: "user", content: `Context:\n${context}\n\nQuestion:\n${question}` }
+        { role: 'system', content: 'Answer questions based on the given document content.' },
+        { role: 'user', content: `Based on this content:\n${content}\n\nAnswer this question: ${question}` },
       ],
-      max_tokens: 700,
-      temperature: 0.3,
     });
 
-    res.status(200).json({ answer: completion.data.choices[0].message.content });
+    res.status(200).json({ answer: completion.choices[0].message.content.trim() });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to answer question." });
+    console.error('Error answering question:', error);
+    res.status(500).json({ error: 'Failed to answer question' });
   }
 }
