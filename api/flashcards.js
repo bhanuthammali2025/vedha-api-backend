@@ -1,43 +1,43 @@
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from 'openai';
 
-const configuration = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-const openai = new OpenAIApi(configuration);
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   const { text } = req.body;
-  if (!text) {
-    return res.status(400).json({ error: "Text is required" });
+
+  if (!text || text.trim() === '') {
+    return res.status(400).json({ error: 'Text is required' });
   }
 
   try {
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4o-mini",
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4',
       messages: [
         {
-          role: "system",
-          content:
-            "You are an AI that generates 5 simple flashcards from the given text. Each flashcard should have a question and an answer.",
+          role: 'system',
+          content: 'You are a helpful assistant that creates study flashcards.',
         },
         {
-          role: "user",
-          content: text,
+          role: 'user',
+          content: `Create flashcards with question and answer format from this content:\n\n${text}`,
         },
       ],
       temperature: 0.7,
     });
 
-    const flashcards = completion.data.choices[0].message.content;
-    res.status(200).json({ flashcards });
+    const content = response.choices[0]?.message?.content;
+    res.status(200).json({ flashcards: content });
   } catch (error) {
-    console.error("OpenAI error:", error.response?.data || error.message);
-    res.status(500).json({ error: "Failed to generate flashcards" });
+    console.error('OpenAI Error:', error);
+    res.status(500).json({ error: 'Failed to generate flashcards' });
   }
 }
+
 
 
