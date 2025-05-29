@@ -1,6 +1,9 @@
-import OpenAI from "openai";
+import { Configuration, OpenAIApi } from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -13,27 +16,28 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
+    const completion = await openai.createChatCompletion({
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: "You are an assistant that generates study flashcards.",
+          content:
+            "You are an AI that generates 5 simple flashcards from the given text. Each flashcard should have a question and an answer.",
         },
         {
           role: "user",
-          content: `Generate 5 flashcards from the following text. Each flashcard should be a question-answer pair:
-
-${text}`,
+          content: text,
         },
       ],
+      temperature: 0.7,
     });
 
-    const answer = response.choices[0].message.content;
-    res.status(200).json({ flashcards: answer });
-  } catch (err) {
-    console.error(err);
+    const flashcards = completion.data.choices[0].message.content;
+    res.status(200).json({ flashcards });
+  } catch (error) {
+    console.error("OpenAI error:", error.response?.data || error.message);
     res.status(500).json({ error: "Failed to generate flashcards" });
   }
 }
+
 
