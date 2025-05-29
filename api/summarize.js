@@ -1,34 +1,42 @@
-import OpenAI from 'openai';
+import OpenAI from "openai";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
   try {
     const { content } = req.body;
-
     if (!content) {
-      return res.status(400).json({ error: 'Missing content' });
+      return res.status(400).json({ error: "Missing 'content' in request body" });
     }
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+    console.log("Received content to summarize:", content);
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",  // or another model like "gpt-4" or "gpt-3.5-turbo"
       messages: [
-        { role: 'system', content: 'You are a helpful summarizer for student documents.' },
-        { role: 'user', content: `Summarize this document:\n\n${content}` },
+        {
+          role: "user",
+          content: `Summarize the following text:\n\n${content}`,
+        },
       ],
+      max_tokens: 500,
     });
 
-    res.status(200).json({ summary: completion.choices[0].message.content.trim() });
+    const summary = response.choices[0].message.content;
+    console.log("Summary generated:", summary);
+
+    return res.status(200).json({ summary });
   } catch (error) {
-    console.error('Error summarizing:', error);
-    res.status(500).json({ error: 'Failed to summarize' });
+    console.error("OpenAI API error:", error);
+    return res.status(500).json({ error: "Failed to summarize" });
   }
 }
+
 
 
